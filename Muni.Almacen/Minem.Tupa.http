@@ -1,6 +1,0 @@
-@Muni.Almacen_HostAddress = http://localhost:5208
-
-GET {{Muni.Almacen_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
