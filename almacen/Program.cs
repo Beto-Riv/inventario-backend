@@ -1,4 +1,5 @@
 using almacen.Repositories.Autenticacion;
+using almacen.Repositories.Ingreso;
 using almacen.Repositories.Inventario;
 using almacen.Utils;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ builder.Services.AddTransient<IDbSession, DbSession>(_ =>
 //Registrar Repositorios
 builder.Services.AddTransient<IAutenticacionRepository, AutenticacionRepository>();
 builder.Services.AddTransient<IInventarioRepository, InventarioRepository>();
+builder.Services.AddTransient<IIngresoRepository, IngresoRepository>();
 
 var valuesSection = builder.Configuration
                 .GetSection("Cors:AllowedHost")
@@ -34,11 +36,11 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 app.UseHttpsRedirection();
 
