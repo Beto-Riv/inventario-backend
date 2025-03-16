@@ -72,6 +72,7 @@ namespace almacen.Repositories.Ingreso
                                    (GETDATE()
                                    ,@IdProducto
                                    ,@Cantidad
+                                   ,NULL
                                    ,1)";
                 }
                 else
@@ -123,52 +124,43 @@ namespace almacen.Repositories.Ingreso
 
         }
 
-        public async Task<StatusResponse<GrabarProductoResponse>> ObtenerProducto(long idProducto)
+        public async Task<StatusResponse<ObtenerIngresoResponse>> ObtenerIngreso(long idEntrada)
         {
             try
             {
                 // Consulta SQL para obtener los datos del usuario que coincide con el alias y la contraseña
-                string sql = @"SELECT [ID_PRODUCTO] idProducto
-                                  ,[NOMBRE] nombre
-                                  ,[MATERIAL] material
-                                  ,[COLOR] color
-                                  ,[TALLA] talla
-                                  ,[TIPO] tipo
-                                  ,[MEDIDAS] medida
-                                  ,[MARCA] marca
-                                  ,[ID_UNIDAD_MEDIDA] idUnidadMedida
-                                  ,[CANTIDAD] stockInicial
-                                  ,[FECHA_VENCIMIENTO] fechaVencimiento
-                                  ,[STOCK_MINIMO] stockMinimo
-                              FROM [dbo].[producto]
-                              WHERE [ID_PRODUCTO]= @IdProducto";
+                string sql = @"SELECT        
+	                                re.ID_ENTRADA idEntrada, 
+	                                re.ID_PRODUCTO idProducto,
+	                                re.CANTIDAD cantidad
+                                FROM dbo.registro_entrada re INNER JOIN
+                                dbo.producto p ON re.ID_PRODUCTO = p.ID_PRODUCTO INNER JOIN
+                                dbo.unidad_medida um ON p.ID_UNIDAD_MEDIDA = um.ID_UNIDAD_MEDIDA
+                                WHERE re.ID_ENTRADA = @IdEntrada";
 
                 var parameters = new DynamicParameters();
-                parameters.Add("@IdProducto", idProducto);
+                parameters.Add("@IdEntrada", idEntrada);
 
                 // Ejecuta la consulta y obtiene el primer usuario que coincida con los criterios
-                var response = await _conn.Connection.QueryFirstOrDefaultAsync<GrabarProductoResponse>(sql, parameters) ?? throw new Exception("Unidades de medidas no válidas");
-
-                return Message.Successful(response);
+                var response = await _conn.Connection.QueryFirstOrDefaultAsync<ObtenerIngresoResponse>(sql, parameters) ?? throw new Exception("Error al obtener información");
+                return Successful(response);
             }
             catch (Exception ex)
             {
-                return Message.Exception<GrabarProductoResponse>(ex);
+                return Exception<ObtenerIngresoResponse>(ex);
             }
-
         }
 
-
-        public async Task<StatusResponse<long>> EliminarProducto(long id)
+        public async Task<StatusResponse<long>> EliminarIngreso(long id)
         {
             try
             {
                 var param = new DynamicParameters();
-                string sql = @"UPDATE [dbo].[producto]
+                string sql = @"UPDATE [dbo].[registro_entrada]
                                SET [ESTADO_REGISTRO] = @EstadoRegistro
-                             WHERE [ID_PRODUCTO] = @IdProducto";
+                             WHERE [ID_ENTRADA] = @Id";
 
-                param.Add("@IdProducto", id);
+                param.Add("@Id", id);
                 param.Add("@EstadoRegistro", false);                
 
                 long response = await _conn.Connection.ExecuteAsync(sql, param);

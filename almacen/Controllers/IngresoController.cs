@@ -22,10 +22,10 @@ namespace almacen.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("obtener-producto")]
-        public async Task<ActionResult> ObtenerProducto([FromQuery]int id)
+        [HttpGet("obtener-ingreso")]
+        public async Task<ActionResult> ObtenerIngreso([FromQuery]int id)
         {
-            var respuesta = await _service.ObtenerProducto(id);
+            var respuesta = await _service.ObtenerIngreso(id);
             return Ok(respuesta);
         }
 
@@ -38,10 +38,10 @@ namespace almacen.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("eliminar-producto")]
-        public async Task<ActionResult> EliminarProductos([FromBody] EliminarProductoRequest request)
+        [HttpPost("eliminar-ingreso")]
+        public async Task<ActionResult> EliminarIngreso([FromBody] EliminarIngresoRequest request)
         {
-            var respuesta = await _service.EliminarProducto(request.id);
+            var respuesta = await _service.EliminarIngreso(request.id);
             return Ok(respuesta);
         }
 
