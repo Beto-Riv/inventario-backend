@@ -37,12 +37,15 @@ namespace almacen.Repositories.Salida
 	                                a.NOMBRE areaSolicitante,
 	                                rs.PERSONA_SOLICITANTE personaSolicitante,
                                     rs.ID_TIPO_SALIDA idTipoSalida,
-                                    rs.ORDEN_SALIDA documentoSalida
+                                    ts.DESCRIPCION tipoSalida,
+                                    rs.ORDEN_SALIDA numeroDocumento
                                 FROM dbo.registro_salida rs INNER JOIN
                                      dbo.producto p ON rs.ID_PRODUCTO = p.ID_PRODUCTO INNER JOIN
                                      dbo.unidad_medida um ON p.ID_UNIDAD_MEDIDA = um.ID_UNIDAD_MEDIDA INNER JOIN
-	                                 dbo.area_solicitante a ON rs.ID_AREA_SOLICITANTE = a.ID
-                                WHERE rs.ESTADO_REGISTRO = 1";
+	                                 dbo.area_solicitante a ON rs.ID_AREA_SOLICITANTE = a.ID INNER JOIN
+                                    dbo.tipo_salida ts ON rs.ID_TIPO_SALIDA = ts.ID_TIPO_SALIDA
+                                WHERE rs.ESTADO_REGISTRO = 1
+                                ORDER BY rs.FECHA DESC";
 
                 var response = await _conn.Connection.QueryAsync<ListarSalidaResponse>(sql, null) ?? throw new Exception("Usuario no válido");
            
@@ -74,7 +77,7 @@ namespace almacen.Repositories.Salida
                                    ,[ORDEN_SALIDA])
                              OUTPUT INSERTED.ID_SALIDA
                              VALUES
-                                   (GETDATE()
+                                   (@Fecha
                                    ,@IdProducto
                                    ,@Cantidad
                                    ,@IdAreaSolicitante
@@ -90,17 +93,33 @@ namespace almacen.Repositories.Salida
                 }
                 else
                 {
-                    sql += @"UPDATE [dbo].[registro_salida]
-                               SET [CANTIDAD] = @Cantidad
-                                  ,[ID_AREA_SOLICITANTE] = @IdAreaSolicitante
-                                  ,[PERSONA_SOLICITANTE] = @PersonaSolicitante
-                                  ,[ID_TIPO_SALIDA] = @IdTipoSalida
-                                  ,[ORDEN_SALIDA] = @OrdenSalida
-                             WHERE [ID_SALIDA] = @Id
+                    sql += @"
+                                DECLARE @CantidadAnterior INT;
+                                SELECT @CantidadAnterior = CANTIDAD FROM [dbo].[registro_salida] WHERE ID_SALIDA = @Id;
 
-                             UPDATE producto
-                            SET CANTIDAD = CANTIDAD - (@CANTIDAD - CANTIDAD)
-                            WHERE ID_PRODUCTO = @IdProducto;
+                                -- Actualizar el registro de salida
+                                UPDATE [dbo].[registro_salida]
+                                SET 
+                                    ID_TIPO_SALIDA = @IdTipoSalida,
+                                    ORDEN_SALIDA = @OrdenSalida,
+                                    FECHA = @Fecha,
+                                    ID_AREA_SOLICITANTE = @IdAreaSolicitante,
+                                    PERSONA_SOLICITANTE = @PersonaSolicitante
+                                WHERE [ID_SALIDA] = @Id;
+
+                                -- Solo actualizar la cantidad si ha cambiado
+                                IF (@Cantidad <> @CantidadAnterior)
+                                BEGIN
+                                    -- Actualizar la cantidad en registro_salida
+                                    UPDATE [dbo].[registro_salida]
+                                    SET CANTIDAD = @Cantidad
+                                    WHERE [ID_SALIDA] = @Id;
+
+                                    -- Actualizar la cantidad en producto considerando la diferencia
+                                    UPDATE producto
+                                    SET CANTIDAD = CANTIDAD - (@Cantidad - @CantidadAnterior)
+                                    WHERE ID_PRODUCTO = @IdProducto;
+                                END;
 ";                    
                 }
 
@@ -111,6 +130,7 @@ namespace almacen.Repositories.Salida
                 param.Add("@PersonaSolicitante", request.personaSolicitante);
                 param.Add("@IdTipoSalida", request.idTipoSalida);
                 param.Add("@OrdenSalida", request.documentoSalida);
+                param.Add("@Fecha", request.fecha);
 
                 long response = await _conn.Connection.ExecuteScalarAsync<long>(sql, param);
                 return Message.Successful(response);
@@ -162,7 +182,8 @@ namespace almacen.Repositories.Salida
                                     re.ID_AREA_SOLICITANTE idAreaSolicitante,
                                     re.PERSONA_SOLICITANTE personaSolicitante,
                                     re.ID_TIPO_SALIDA idTipoSalida,
-                                    re.ORDEN_SALIDA documentoSalida
+                                    re.ORDEN_SALIDA documentoSalida,
+                                    re.FECHA fecha
                                 FROM dbo.registro_salida re INNER JOIN
                                 dbo.producto p ON re.ID_PRODUCTO = p.ID_PRODUCTO INNER JOIN
                                 dbo.unidad_medida um ON p.ID_UNIDAD_MEDIDA = um.ID_UNIDAD_MEDIDA
